@@ -118,14 +118,11 @@ resource "openstack_compute_instance_v2" "team_ide" {
 
   # cloud-init user-data: User und Gruppen für dieses Team
   user_data = templatefile("${path.module}/user-data.yaml.tpl", {
-    teams      = [each.key]
-    users      = { for uid, u in local.users_map : uid => u if u.team == each.key }
-    passwords  = { for uid, u in local.users_map : uid => random_password.user_passwords[uid].result if u.team == each.key }
-    user_ports = { for uid, u in local.users_map : uid => 8080 + local.user_indices[uid] if u.team == each.key }
-    # Forward the platform-uploaded files into the cloud-init
-    # template — write_files iterates over the values and lays them
-    # down on disk via base64 decode (``encoding: b64``).
-    assignment_files = var.assignment_files
+    teams            = [each.key]
+    users            = { for uid, u in local.users_map : uid => u if u.team == each.key }
+    passwords        = { for uid, u in local.users_map : uid => random_password.user_passwords[uid].result if u.team == each.key }
+    user_ports       = { for uid, u in local.users_map : uid => 8080 + local.user_indices[uid] if u.team == each.key }
+    assignment_files = lookup(var.assignment_files, each.key, {})
   })
 
   metadata = {

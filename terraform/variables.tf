@@ -11,17 +11,6 @@ variable "users" {
   default = {}
 }
 
-variable "assignment_files" {
-  description = "Java-Aufgabendatei pro User — wird unter ~/Coding-Aufgabe/ abgelegt @openstack:file:user:java"
-  type = map(map(object({
-    name         = string
-    content_b64  = string
-    content_type = string
-    size         = number
-  })))
-  default = {}
-}
-
 # Per-Team-Beispiel: jeder Lehrgruppe (Team) wird im Wizard eine
 # eigene Flavor-Größe zugewiesen. Der Wizard rendert einen Picker
 # pro Team-Name; Terraform sieht eine ``map(string)`` mit
@@ -32,6 +21,17 @@ variable "team_flavor_ids" {
   description = "[CONTRACT] Flavor-ID pro Team — Picker-Auswahl @openstack:flavor:id:single:team"
   type        = map(string)
   default     = {}
+}
+
+variable "assignment_files" {
+  description = "Vom Dozenten hochgeladene Aufgaben als ZIP pro Team @openstack:file:team:zip"
+  type = map(map(object({
+    name         = string
+    content_b64  = string
+    content_type = string
+    size         = number
+  })))
+  default = {}
 }
 
 ########################################

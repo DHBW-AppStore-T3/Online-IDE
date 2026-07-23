@@ -26,20 +26,17 @@ chpasswd:
 # SSH Passwort-Authentifizierung aktivieren
 ssh_pwauth: true
 
-# Individuelle Java-Aufgaben per User in neutralen Staging-Pfad schreiben.
-# /tmp/ wird von cloud-init nicht defer'd — kein write_files_deferred-Problem.
+# Team-Aufgaben in neutralen Staging-Pfad schreiben
 write_files:
-%{ for user_id, user in users ~}
-%{ if lookup(assignment_files, user_id, null) != null ~}
-%{ for slot_key, file in assignment_files[user_id] ~}
-  - path: /tmp/coding-aufgaben/${user.username}/${file.name}
-    permissions: '0600'
+%{ if length(assignment_files) > 0 ~}
+%{ for _, file in assignment_files ~}
+  - path: /tmp/assignment/${file.name}
+    permissions: '0644'
     owner: root:root
     encoding: b64
     content: ${file.content_b64}
 %{ endfor ~}
 %{ endif ~}
-%{ endfor ~}
 
 # code-server pro User als System-Service starten
 # Jeder User bekommt eigenen code-server auf eigenem Port mit eigenem Passwort
@@ -47,14 +44,20 @@ runcmd:
 %{ for user_id, user in users ~}
   # User ${user.username}: code-server auf Port ${lookup(user_ports, user_id, 8080)}
   - mkdir -p /home/${user.username}/Coding-Aufgabe
-%{ if lookup(assignment_files, user_id, null) != null ~}
-%{ for slot_key, file in assignment_files[user_id] ~}
-  - mv /tmp/coding-aufgaben/${user.username}/${file.name} /home/${user.username}/Coding-Aufgabe/${file.name}
-  - chown ${user.username}:${user.username} /home/${user.username}/Coding-Aufgabe/${file.name}
-  - chmod 644 /home/${user.username}/Coding-Aufgabe/${file.name}
-%{ endfor ~}
-%{ endif ~}
+  # Team-Aufgaben für jeden User kopieren
+  - |
+    if [ -d /tmp/assignment ] && [ "$(ls -A /tmp/assignment 2>/dev/null)" ]; then
+      for srcfile in /tmp/assignment/*; do
+        fname=$(basename "$srcfile")
+        if echo "$fname" | grep -qi '\.zip$'; then
+          unzip -o "$srcfile" -d /home/${user.username}/Coding-Aufgabe/ > /dev/null 2>&1 || true
+        else
+          cp "$srcfile" /home/${user.username}/Coding-Aufgabe/"$fname"
+        fi
+      done
+    fi
   - chown -R ${user.username}:${user.username} /home/${user.username}/Coding-Aufgabe
+  - chmod 644 /home/${user.username}/Coding-Aufgabe/* 2>/dev/null || true
   - mkdir -p /home/${user.username}/.local/share/code-server
   - mkdir -p /home/${user.username}/.config/code-server
   - chown -R ${user.username}:${user.username} /home/${user.username}/.local
@@ -90,4 +93,5 @@ runcmd:
   - systemctl enable code-server-${user.username}
   - systemctl start code-server-${user.username}
 %{ endfor ~}
-
+  # Staging-Verzeichnis aufräumen
+  - rm -rf /tmp/assignment
