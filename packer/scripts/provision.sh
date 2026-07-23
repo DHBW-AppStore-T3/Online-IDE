@@ -25,7 +25,8 @@ sudo DEBIAN_FRONTEND=noninteractive apt-get install -y \
   python3 \
   python3-pip \
   nodejs \
-  npm
+  npm \
+  unzip
 
 # -----------------------------------------------------------------------------
 # code-server Installation

@@ -44,20 +44,16 @@ runcmd:
 %{ for user_id, user in users ~}
   # User ${user.username}: code-server auf Port ${lookup(user_ports, user_id, 8080)}
   - mkdir -p /home/${user.username}/Coding-Aufgabe
-  # Team-Aufgaben für jeden User kopieren
+  # Team-Aufgaben (ZIP) für jeden User entpacken
   - |
     if [ -d /tmp/assignment ] && [ "$(ls -A /tmp/assignment 2>/dev/null)" ]; then
-      for srcfile in /tmp/assignment/*; do
-        fname=$(basename "$srcfile")
-        if echo "$fname" | grep -qi '\.zip$'; then
-          unzip -o "$srcfile" -d /home/${user.username}/Coding-Aufgabe/ > /dev/null 2>&1 || true
-        else
-          cp "$srcfile" /home/${user.username}/Coding-Aufgabe/"$fname"
-        fi
+      for srcfile in /tmp/assignment/*.zip; do
+        [ -f "$srcfile" ] || continue
+        unzip -o "$srcfile" -d /home/${user.username}/Coding-Aufgabe/ > /dev/null 2>&1 || true
       done
     fi
   - chown -R ${user.username}:${user.username} /home/${user.username}/Coding-Aufgabe
-  - chmod 644 /home/${user.username}/Coding-Aufgabe/* 2>/dev/null || true
+  - find /home/${user.username}/Coding-Aufgabe -type f -exec chmod 644 {} \;
   - mkdir -p /home/${user.username}/.local/share/code-server
   - mkdir -p /home/${user.username}/.config/code-server
   - chown -R ${user.username}:${user.username} /home/${user.username}/.local
