@@ -1,12 +1,12 @@
 #cloud-config
 
-# Team-Gruppen erstellen
+# Create team groups
 groups:
 %{ for team in teams ~}
   - ${team}
 %{ endfor ~}
 
-# User-Accounts erstellen
+# Create user accounts
 users:
 %{ for user_id, user in users ~}
   - name: ${user.username}
@@ -15,7 +15,7 @@ users:
     sudo: ['ALL=(ALL) NOPASSWD:ALL']
 %{ endfor ~}
 
-# Passwörter setzen
+# Set passwords
 chpasswd:
   list: |
 %{ for user_id, user in users ~}
@@ -23,10 +23,10 @@ chpasswd:
 %{ endfor ~}
   expire: false
 
-# SSH Passwort-Authentifizierung aktivieren
+# Enable SSH password authentication
 ssh_pwauth: true
 
-# Team-Aufgaben in neutralen Staging-Pfad schreiben
+# Write assignment files to neutral staging path
 write_files:
 %{ if length(assignment_files) > 0 ~}
 %{ for _, file in assignment_files ~}
@@ -38,13 +38,12 @@ write_files:
 %{ endfor ~}
 %{ endif ~}
 
-# code-server pro User als System-Service starten
-# Jeder User bekommt eigenen code-server auf eigenem Port mit eigenem Passwort
+# Start code-server per user as a systemd service — each user gets a dedicated instance on a dedicated port
 runcmd:
 %{ for user_id, user in users ~}
-  # User ${user.username}: code-server auf Port ${lookup(user_ports, user_id, 8080)}
+  # ${user.username}: code-server on port ${lookup(user_ports, user_id, 8080)}
   - mkdir -p /home/${user.username}/Coding-Aufgabe
-  # Team-Aufgaben (ZIP) für jeden User entpacken
+  # Extract assignment ZIPs into each user's workspace
   - |
     if [ -d /tmp/assignment ] && [ "$(ls -A /tmp/assignment 2>/dev/null)" ]; then
       for srcfile in /tmp/assignment/*.zip; do
@@ -89,5 +88,5 @@ runcmd:
   - systemctl enable code-server-${user.username}
   - systemctl start code-server-${user.username}
 %{ endfor ~}
-  # Staging-Verzeichnis aufräumen
+  # Clean up staging directory
   - rm -rf /tmp/assignment

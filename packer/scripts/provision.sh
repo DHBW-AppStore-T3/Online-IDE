@@ -3,13 +3,13 @@ set -euo pipefail
 
 # -----------------------------------------------------------------------------
 # Online-IDE Provisioning Script
-# Ziel: code-server (VS Code im Browser) installieren und systemd-ready machen
+# Goal: Install code-server (VS Code in the browser) and make it systemd-ready
 #
-# Wichtig:
-# - KEINE User anlegen (kommt später via cloud-init)
-# - KEINE Passwörter setzen
-# - KEINE kurs-/teamspezifischen Daten
-# - Generisches, wiederverwendbares Image
+# Important:
+# - Do NOT create users (handled later via cloud-init)
+# - Do NOT set passwords
+# - Do NOT include course- or team-specific data
+# - Generic, reusable image
 # -----------------------------------------------------------------------------
 
 echo "[1/5] Waiting for cloud-init to complete..."
@@ -33,18 +33,17 @@ sudo DEBIAN_FRONTEND=noninteractive apt-get install -y \
 # -----------------------------------------------------------------------------
 echo "[3/5] Installing code-server..."
 
-# Offizielle Installation via Install-Script
 curl -fsSL https://code-server.dev/install.sh | sh
 
-# code-server systemd-Service wird automatisch erstellt, aber nicht gestartet
-# (wird pro User via cloud-init gestartet)
+# The systemd service is created automatically but not started here;
+# it is started per user via cloud-init.
 
 echo "[4/5] Configuring code-server defaults..."
 
-# Globale config für code-server (wird von userspezifischen configs überschrieben)
+# Global config for code-server (overridden by per-user configs)
 sudo mkdir -p /etc/code-server
 
-# Default-Config: lauscht auf allen Interfaces, Port 8080
+# Default config: listen on all interfaces, port 8080
 sudo tee /etc/code-server/config.yaml >/dev/null << 'EOF'
 bind-addr: 0.0.0.0:8080
 auth: password
@@ -53,11 +52,11 @@ EOF
 
 echo "[5/5] Cleanup and finalization..."
 
-# Apt-Cache leeren für kleineres Image
+# Clear apt cache to reduce image size
 sudo apt-get clean
 sudo rm -rf /var/lib/apt/lists/*
 
-# machine-id zurücksetzen (wichtig für cloud-init)
+# Reset machine-id so cloud-init generates a fresh one on first boot
 sudo truncate -s 0 /etc/machine-id
 sudo rm -f /var/lib/dbus/machine-id
 

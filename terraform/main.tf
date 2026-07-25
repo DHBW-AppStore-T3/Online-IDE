@@ -13,30 +13,29 @@ terraform {
   }
 }
 
-# OpenStack Provider mit explizitem clouds.yaml Pfad
+# OpenStack provider with explicit clouds.yaml path
 provider "openstack" {
   cloud = "openstack"
 }
 
 ############################
-# APP-DEFAULTS (vom App-Entwickler vorgegeben)
+# APP-DEFAULTS (defined by the app developer)
 ############################
 
 locals {
-  # Diese Werte sind App-spezifisch und werden vom App-Entwickler definiert
   app_name           = "online-ide"
   flavor             = "gp1.small"
-  key_pair           = "" # Leer = nur Passwort-Auth
+  key_pair           = "" # Empty = password auth only
   enable_floating_ip = true
 }
 
-# Packer-Image aus Glance laden
+# Load Packer image from Glance
 data "openstack_images_image_v2" "image" {
   name        = var.image_name
   most_recent = true
 }
 
-# External Network für Floating IPs
+# External network for floating IPs
 data "openstack_networking_network_v2" "external" {
   name = var.floating_ip_pool
 }
@@ -45,7 +44,7 @@ data "openstack_networking_network_v2" "external" {
 # USER MANAGEMENT (CONTRACT)
 ############################
 
-# Flatten users from teams - EXAKT wie im Contract vorgegeben
+# Flatten users from teams - exactly as specified in the contract
 locals {
   all_users = flatten([
     for team, members in var.users : [
@@ -62,7 +61,7 @@ locals {
   teams_list = distinct([for user in local.all_users : user.team])
 }
 
-# Passwörter für jeden User generieren
+# Generate passwords for each user
 resource "random_password" "user_passwords" {
   for_each    = local.users_map
   length      = 16
@@ -77,32 +76,30 @@ resource "random_password" "user_passwords" {
 # TEAM-BASED VMs
 ############################
 
-# Pro Team ein eigenes Port-Objekt
+# One port object per team
 resource "openstack_networking_port_v2" "team_port" {
   for_each           = toset(local.teams_list)
   network_id         = var.network_uuid
   security_group_ids = [var.shared_secgroup_id]
 }
 
-# Pro Team eine VM deployen, die explizit an den Port gebunden ist
+# Deploy one VM per team, explicitly bound to its port
 resource "openstack_compute_instance_v2" "team_ide" {
   for_each = toset(local.teams_list)
 
   name     = "${local.app_name}-${each.key}"
   image_id = data.openstack_images_image_v2.image.id
-  # Per-Team-Flavor (wenn vom Wizard gewählt) hat Vorrang über den
-  # statischen ``local.flavor``-Default. Der Wizard liefert eine
-  # Flavor-UUID (Marker ``@openstack:flavor:id:single:team`` →
-  # ``osMode = id``), also setzen wir hier ``flavor_id`` statt
-  # ``flavor_name``. ``flavor_id`` und ``flavor_name`` sind beim
-  # OpenStack-Provider gegenseitig exklusiv — wer beide setzt,
-  # bekommt einen Konflikt-Error beim Apply.
+  # Per-team flavor (if selected via wizard) takes precedence over the
+  # static ``local.flavor`` default. The wizard supplies a flavor UUID
+  # (marker ``@openstack:flavor:id:single:team`` →
+  # ``osMode = id``), so we set ``flavor_id`` instead of
+  # ``flavor_name``. The two are mutually exclusive in the OpenStack
+  # provider — setting both causes a conflict error on apply.
   #
-  # Fallback: Wenn für dieses Team kein Eintrag in
-  # ``var.team_flavor_ids`` existiert (User hat den Slot leer
-  # gelassen ODER die Variable ist überhaupt nicht gesetzt), greift
-  # ``local.flavor``. Dadurch bleibt das Default-Verhalten
-  # rückwärtskompatibel.
+  # Fallback: if no entry exists in ``var.team_flavor_ids`` for this
+  # team (user left the slot empty or the variable is not set at all),
+  # ``local.flavor`` is used. This keeps the default behavior
+  # backward-compatible.
   flavor_id   = try(var.team_flavor_ids[each.key], null)
   flavor_name = try(var.team_flavor_ids[each.key], null) == null ? local.flavor : null
   key_pair    = local.key_pair != "" ? local.key_pair : null
@@ -116,7 +113,7 @@ resource "openstack_compute_instance_v2" "team_ide" {
     port = openstack_networking_port_v2.team_port[each.key].id
   }
 
-  # cloud-init user-data: User und Gruppen für dieses Team
+  # cloud-init user-data: users and groups for this team
   user_data = templatefile("${path.module}/user-data.yaml.tpl", {
     teams            = [each.key]
     users            = { for uid, u in local.users_map : uid => u if u.team == each.key }
@@ -134,7 +131,7 @@ resource "openstack_compute_instance_v2" "team_ide" {
 # FLOATING IPs
 ############################
 
-# Floating IP pro Team-VM
+# One floating IP per team VM
 resource "openstack_networking_floatingip_v2" "team_fip" {
   for_each = local.enable_floating_ip ? toset(local.teams_list) : []
 
@@ -154,16 +151,16 @@ resource "openstack_networking_floatingip_associate_v2" "team_fip_assoc" {
 # OUTPUT CONTRACT
 ############################
 
-# User Accounts gemäß OUTPUT-CONTRACT
+# User accounts per OUTPUT-CONTRACT
 locals {
-  # Gruppiere User nach Team und erstelle Index
+  # Group users by team and build index
   users_by_team = {
     for team in local.teams_list : team => [
       for uid, user in local.users_map : uid if user.team == team
     ]
   }
 
-  # Map: user_id -> index innerhalb des Teams (für Port-Berechnung)
+  # Map: user_id -> index within team (for port calculation)
   user_indices = merge([
     for team in local.teams_list : {
       for idx, uid in local.users_by_team[team] : uid => idx
