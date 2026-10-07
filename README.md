@@ -66,3 +66,12 @@ Diese wird beim VM-Start automatisch unter `~/Coding-Aufgabe/<dateiname>.java`
 
 abgelegt und ist direkt in code-server sichtbar.
  
+
+## Pod-Variante (ab v2.0.0)
+
+Ab Version `v2.0.0` läuft die Online-IDE als Pods statt als VMs (`appstore.yaml`,
+App-Vertrag v2): **ein code-server-Pod je Person** mit eigenem Speicher (5 GiB), HTTPS-Link
+und eigenem Passwort unter „Meine Zugänge". Keine VM, kein Packer-Build, kein OpenStack-Credential.
+Das Image (`image/Dockerfile`) wird von `.github/workflows/image.yml` gebaut; nach einer Änderung
+den neuen Digest in `appstore.yaml` eintragen und eine neue Version taggen. Die Versionen `v1.x`
+(Terraform/Packer) laufen unverändert weiter.

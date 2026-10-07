@@ -1,0 +1,21 @@
+# App contract v2: this app runs as pods, not as VMs (the terraform/ and packer/
+# directories belong to the VM versions, v1.x). One code-server per person.
+apiVersion: appstore/v2
+name: online-ide
+runtime: kubernetes
+scope: user
+workload:
+  containers:
+    - name: ide
+      # Built by .github/workflows/image.yml. After changing image/, copy the new digest here.
+      image: ghcr.io/dhbw-appstore-t3/apps/online-ide@sha256:d6839ef3bf0561ce8e495ec0e74b1399dd031d8a169003c702f0f06afd8c309a
+      expose: { port: 8080, path: / }
+      resources: { cpu: "500m", memory: "1Gi" }
+      env:
+        - { name: PASSWORD, from: generated-password }
+      writablePaths: [/tmp]
+  storage: { size: 5Gi, mountPath: /home/coder }
+egress: internet
+access:
+  - { type: url, template: "https://{workload}-{deployment}.{domain}" }
+  - { type: password, from: generated-password, username: "{user}" }
