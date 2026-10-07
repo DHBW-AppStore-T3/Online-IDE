@@ -10,7 +10,8 @@ workload:
       # Built by .github/workflows/image.yml. After changing image/, copy the new digest here.
       image: ghcr.io/dhbw-appstore-t3/apps/online-ide@sha256:d6839ef3bf0561ce8e495ec0e74b1399dd031d8a169003c702f0f06afd8c309a
       expose: { port: 8080, path: / }
-      resources: { cpu: "500m", memory: "1Gi" }
+      # An idle code-server needs ~50 MiB and a few millicores: reserve little, allow bursts.
+      resources: { cpu: "1", memory: "1Gi", requests: { cpu: 100m, memory: 256Mi } }
       env:
         - { name: PASSWORD, from: generated-password }
       writablePaths: [/tmp]
