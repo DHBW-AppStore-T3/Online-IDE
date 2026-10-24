@@ -17,6 +17,10 @@ workload:
       writablePaths: [/tmp]
   storage: { size: 5Gi, mountPath: /home/coder }
 egress: internet
+variables:
+  # Optional assignments per team (a ZIP, e.g. aufgaben.zip in this repository): unpacked into ~/Coding-Aufgabe
+  # of every member at the first start of their workspace (image/start.sh). Without it the workspace starts empty.
+  - { name: assignments, type: file, scope: team, ext: [zip], maxSize: 1Mi, mountPath: /opt/online-ide/assignment.zip }
 access:
   - { type: url, template: "https://{workload}-{deployment}.{domain}" }
   - { type: password, from: generated-password, username: "{user}" }
