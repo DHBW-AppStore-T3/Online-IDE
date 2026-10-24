@@ -113,3 +113,6 @@ jobs:
       with:
         working_directory: terraform
         soft_fail: false
+        # The action looks up tfsec's latest release through the GitHub API; without a
+        # token that shares the runner IP's anonymous limit (60/h) and fails at random.
+        github_token: ${{ github.token }}
