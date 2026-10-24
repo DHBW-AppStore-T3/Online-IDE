@@ -107,9 +107,18 @@ jobs:
       run: tflint --recursive
       working-directory: terraform
 
-    # Run tfsec security scanner
+    # Run tfsec security scanner: a pinned release, checked against its checksum file and
+    # fetched from the release page. tfsec-action looked the release up through the GitHub
+    # API instead, which failed anonymously (rate limit shared by the runner's IP) and with
+    # a token (aquasecurity's IP allow list refuses authenticated requests from runners).
     - name: Run tfsec
-      uses: aquasecurity/tfsec-action@v1.0.3
-      with:
-        working_directory: terraform
-        soft_fail: false
+      env:
+        TFSEC_VERSION: v1.28.14
+      run: |
+        base="https://github.com/aquasecurity/tfsec/releases/download/${TFSEC_VERSION}"
+        cd "$RUNNER_TEMP"
+        curl -fsSL --retry 3 -o tfsec-linux-amd64 "$base/tfsec-linux-amd64"
+        curl -fsSL --retry 3 -o tfsec_checksums.txt "$base/tfsec_checksums.txt"
+        grep ' tfsec-linux-amd64$' tfsec_checksums.txt | sha256sum -c -
+        chmod +x tfsec-linux-amd64
+        ./tfsec-linux-amd64 "$GITHUB_WORKSPACE/terraform"
