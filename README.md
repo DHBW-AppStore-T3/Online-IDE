@@ -15,7 +15,7 @@ Jede Person erhält ihren eigenen Pod und ein von der Plattform erzeugtes Passwo
 |---|---|---|
 | `assignments` | Aufgaben als ZIP-Datei (höchstens 1 MiB), eine Datei je Team | Nein |
 
-Das ZIP wird beim ersten Start des Arbeitsplatzes jeder Person im Team nach `~/Coding-Aufgabe` entpackt (`image/start.sh`). Ohne ZIP startet der Arbeitsplatz leer. Ein Beispiel liegt als `aufgaben.zip` im Repository (wird auch vom Smoke-Test verwendet). Die Variable ist in `v2.0.1` noch nicht enthalten, sondern erst in der nächsten Version (nach neuem Image-Digest und Tag).
+Das ZIP wird beim ersten Start des Arbeitsplatzes jeder Person im Team nach `~/Coding-Aufgabe` entpackt (`image/start.sh`). Ohne ZIP startet der Arbeitsplatz leer. Ein Beispiel liegt als `aufgaben.zip` im Repository (wird auch vom Smoke-Test verwendet). Die Variable gibt es ab `v2.1.0`; `v2.0.0` und `v2.0.1` kennen sie nicht.
 
 ## Image und CI
 

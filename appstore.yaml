@@ -8,7 +8,7 @@ workload:
   containers:
     - name: ide
       # Built by .github/workflows/ci.yml. After changing image/, copy the new digest here.
-      image: ghcr.io/dhbw-appstore-t3/apps/online-ide@sha256:5cf723b509402935091b0997584bb7a4e49129d53ac108269e0a00f85abaa42b
+      image: ghcr.io/dhbw-appstore-t3/apps/online-ide@sha256:308fc863e706f8071d0cbed400031c79c99f76d826b9d4d8f64b365767817a3e
       expose: { port: 8080, path: / }
       # An idle code-server needs ~50 MiB and a few millicores: reserve little, allow bursts.
       resources: { cpu: "1", memory: "1Gi", requests: { cpu: 100m, memory: 256Mi } }
