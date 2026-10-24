@@ -1,5 +1,5 @@
-# App contract v2: this app runs as pods, not as VMs (the terraform/ and packer/
-# directories belong to the VM versions, v1.x). One code-server per person.
+# App contract v2: this app runs as pods, not as VMs (the VM versions, v1.x, are only available via their git
+# tags). One code-server per person.
 apiVersion: appstore/v2
 name: online-ide
 runtime: kubernetes
@@ -7,7 +7,7 @@ scope: user
 workload:
   containers:
     - name: ide
-      # Built by .github/workflows/image.yml. After changing image/, copy the new digest here.
+      # Built by .github/workflows/ci.yml. After changing image/, copy the new digest here.
       image: ghcr.io/dhbw-appstore-t3/apps/online-ide@sha256:5cf723b509402935091b0997584bb7a4e49129d53ac108269e0a00f85abaa42b
       expose: { port: 8080, path: / }
       # An idle code-server needs ~50 MiB and a few millicores: reserve little, allow bursts.

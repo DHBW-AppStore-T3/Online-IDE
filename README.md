@@ -1,77 +1,30 @@
-# Online-IDE – Browserbasierte Java-Entwicklungsumgebung
- 
-Eine cloud-init-basierte VS Code Server Instanz pro Team, die jedem Studierenden eine
+# Online-IDE – VS Code im Browser
 
-individuelle Entwicklungsumgebung im Browser bereitstellt. Jeder Nutzer meldet sich mit
+Eine eigene Entwicklungsumgebung (code-server, VS Code im Browser) für jede Person eines Deployments, mit eigenem Speicher und eigenem Login. Die App läuft als Pods (`appstore.yaml`, App-Vertrag v2): **ein code-server-Pod je Person** mit 5 GiB Speicher im Home-Verzeichnis, HTTPS-Link und eigenem Passwort unter „Meine Zugänge“.
 
-persönlichen Zugangsdaten an und erhält eine eigene code-server-Session auf einem
-
-dedizierten Port.
- 
 ## User-Management
- 
-Jeder Nutzer bekommt einen eigenen Linux-Account (abgeleitet aus der E-Mail-Adresse)
 
-und ein automatisch generiertes Passwort. Der Login in code-server erfolgt über dieses
+Jede Person erhält ihren eigenen Pod und ein von der Plattform erzeugtes Passwort. Der Login in code-server erfolgt mit diesem Passwort. Dateien liegen im persistenten Home-Verzeichnis (`/home/coder`) und überstehen Pause/Fortsetzen und Neustart.
 
-Passwort. Zugangsdaten werden nach dem Deployment per Mail versendet. Innerhalb eines
+- **Software:** code-server (Version siehe `image/Dockerfile`), Internetzugang ist erlaubt.
+- **Kein `sudo`:** Systempakete (`apt`) können nicht installiert werden. Das Root-Dateisystem ist schreibgeschützt, schreibbar sind nur das Home-Verzeichnis und `/tmp`.
 
-Teams teilen sich alle Nutzer dieselbe VM, arbeiten aber auf isolierten Ports und in
-
-separaten Home-Verzeichnissen.
- 
-## VM-Deployment
- 
-Es wird **eine VM pro Team** deployed. Bei zwei Teams entstehen zwei VMs. Jeder Nutzer
-
-eines Teams erhält einen eigenen Port ab 8080 (aufsteigend pro Nutzer). Flavor: `gp1.small`.
- 
-## Deployment-Dauer
- 
-| Phase | Dauer |
-
-|---|---|
-
-| Packer Image Build (einmalig) | ca. 15–20 Min |
-
-| Terraform Apply | ca. 2–5 Min |
-
-| VM-Boot + cloud-init (User-Anlage, code-server-Start) | ca. 2–4 Min |
-
-| **Gesamt erstmalig** | **ca. 20–30 Min** |
- 
-Bei vorhandenem Packer-Image entfällt der Build — dann ca. **5–10 Minuten** gesamt.
- 
 ## Konfigurierbare Variablen
- 
+
 | Variable | Beschreibung | Pflicht |
-
 |---|---|---|
+| `assignments` | Aufgaben als ZIP-Datei (höchstens 1 MiB), eine Datei je Team | Nein |
 
-| `assignment_files` | Java-Aufgabendatei pro User (`.java`) — landet unter `~/Coding-Aufgabe/` | Ja |
+Das ZIP wird beim ersten Start des Arbeitsplatzes jeder Person im Team nach `~/Coding-Aufgabe` entpackt (`image/start.sh`). Ohne ZIP startet der Arbeitsplatz leer. Ein Beispiel liegt als `aufgaben.zip` im Repository (wird auch vom Smoke-Test verwendet). Die Variable ist in `v2.0.1` noch nicht enthalten, sondern erst in der nächsten Version (nach neuem Image-Digest und Tag).
 
-| `team_flavor_ids` | Flavor-ID pro Team — Picker-Auswahl | Nein |
+## Image und CI
 
-| `network_uuid` | UUID des internen Netzwerks | Ja (Default vorhanden) |
+`image/Dockerfile` wird von `.github/workflows/ci.yml` gebaut (zentrale Pipeline aus `app-registry`: Vertrag, hadolint, Smoke-Test, Trivy) und mit dem Sicherheitskontext der Plattform getestet (UID 1000, Read-only-Root, keine Capabilities; `.github/smoke-test.sh`). Bekannte, noch nicht behebbare Befunde im Upstream-Image stehen mit Ablaufdatum in `.trivyignore`.
 
-| `floating_ip_pool` | Name des External Networks für öffentliche IP | Ja (Default vorhanden) |
+- **Pull Request:** das Image wird gebaut und getestet, aber nicht veröffentlicht.
+- **Push auf `main` oder `dev`:** das Image wird zusätzlich nach GHCR gepusht. Den Digest zeigt die Zusammenfassung des Jobs.
+- Nach einer Änderung den neuen Digest in `appstore.yaml` eintragen und eine neue Version taggen. Die Plattform deployt nur Images, die per Digest festgelegt sind.
 
-| `shared_secgroup_id` | ID der Security Group | Ja (Default vorhanden) |
- 
-### Aufgabendateien (`assignment_files`)
- 
-Über den Wizard muss pro Nutzer eine individuelle `.java`-Datei hochgeladen werden.
+## Ältere Versionen
 
-Diese wird beim VM-Start automatisch unter `~/Coding-Aufgabe/<dateiname>.java`
-
-abgelegt und ist direkt in code-server sichtbar.
- 
-
-## Pod-Variante (ab v2.0.0)
-
-Ab Version `v2.0.0` läuft die Online-IDE als Pods statt als VMs (`appstore.yaml`,
-App-Vertrag v2): **ein code-server-Pod je Person** mit eigenem Speicher (5 GiB), HTTPS-Link
-und eigenem Passwort unter „Meine Zugänge". Keine VM, kein Packer-Build, kein OpenStack-Credential.
-Das Image (`image/Dockerfile`) wird von `.github/workflows/ci.yml` gebaut (zentrale Pipeline aus `app-registry`: Vertrag, hadolint, Smoke-Test `.github/smoke-test.sh`, Trivy); nach einer Änderung
-den neuen Digest in `appstore.yaml` eintragen und eine neue Version taggen. Die Versionen `v1.x`
-(Terraform/Packer) laufen unverändert weiter.
+Die VM-Versionen (`v1.x`, cloud-init mit Terraform und Packer) wurden aus dem Repository entfernt. Sie bleiben über ihre Git-Tags (z. B. `v1.0.0`) abrufbar.
