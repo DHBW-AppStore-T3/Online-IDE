@@ -5,21 +5,18 @@
 # start of the person's workspace, as the VM version did. Later starts leave
 # the work there alone. No sudo, no root: the platform runs this as an
 # unprivileged user with a read-only root filesystem.
+#
+# The unpacking is done by unpack-assignments.py, which checks the whole archive first (entry count, real
+# unpacked size, paths, links, encryption) and writes everything or nothing. A rejected or broken ZIP is
+# logged and the IDE starts with an empty workspace; it never keeps the IDE from starting.
 set -eu
 
 ZIP="${ASSIGNMENT_ZIP:-/opt/online-ide/assignment.zip}"
 DEST="${HOME:-/home/coder}/Coding-Aufgabe"
-MARK="$DEST/.appstore-unpacked"
 
-if [ -f "$ZIP" ] && [ ! -e "$MARK" ]; then
-    mkdir -p "$DEST"
-    # unzip drops absolute paths and ../ components; macOS metadata is skipped.
-    if unzip -o -q "$ZIP" -d "$DEST" -x '__MACOSX/*' '*/.DS_Store' '.DS_Store'; then
-        touch "$MARK"
-        echo "online-ide: assignments unpacked into $DEST"
-    else
-        echo "online-ide: could not unpack $ZIP, starting without the assignments" >&2
-    fi
+if [ -f "$ZIP" ]; then
+    /usr/bin/python3 /usr/local/bin/online-ide-unpack "$ZIP" "$DEST" \
+        || echo "online-ide: starting without the assignments" >&2
 fi
 
 exec dumb-init /usr/bin/code-server "$@"

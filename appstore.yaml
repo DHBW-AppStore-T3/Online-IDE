@@ -10,8 +10,9 @@ workload:
       # Built by .github/workflows/ci.yml. After changing image/, copy the new digest here.
       image: ghcr.io/dhbw-appstore-t3/apps/online-ide@sha256:308fc863e706f8071d0cbed400031c79c99f76d826b9d4d8f64b365767817a3e
       expose: { port: 8080, path: / }
-      # An idle code-server needs ~50 MiB and a few millicores: reserve little, allow bursts.
-      resources: { cpu: "1", memory: "1Gi", requests: { cpu: 100m, memory: 256Mi } }
+      # An idle code-server needs ~50 MiB and a few millicores: reserve little, allow bursts. The limits leave room for
+      # what students run in the terminal (gcc, npm install, pip builds).
+      resources: { cpu: "2", memory: 2Gi, requests: { cpu: 100m, memory: 256Mi } }
       env:
         - { name: PASSWORD, from: generated-password }
       writablePaths: [/tmp]
