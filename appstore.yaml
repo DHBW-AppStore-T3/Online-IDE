@@ -8,7 +8,7 @@ workload:
   containers:
     - name: ide
       # Built by .github/workflows/ci.yml. After changing image/, copy the new digest here.
-      image: ghcr.io/dhbw-appstore-t3/apps/online-ide@sha256:308fc863e706f8071d0cbed400031c79c99f76d826b9d4d8f64b365767817a3e
+      image: ghcr.io/dhbw-appstore-t3/apps/online-ide@sha256:b26773bef750b473f730fa2ccdf6c365bfc3beb5bf82d805c875bf3b2159ed91
       expose: { port: 8080, path: / }
       # An idle code-server needs ~50 MiB and a few millicores: reserve little, allow bursts. The limits leave room for
       # what students run in the terminal (gcc, npm install, pip builds).
