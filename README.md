@@ -6,16 +6,40 @@ Eine eigene Entwicklungsumgebung (code-server, VS Code im Browser) für jede Per
 
 Jede Person erhält ihren eigenen Pod und ein von der Plattform erzeugtes Passwort. Der Login in code-server erfolgt mit diesem Passwort. Dateien liegen im persistenten Home-Verzeichnis (`/home/coder`) und überstehen Pause/Fortsetzen und Neustart.
 
-- **Software:** code-server (Version siehe `image/Dockerfile`), Internetzugang ist erlaubt.
-- **Kein `sudo`:** Systempakete (`apt`) können nicht installiert werden. Das Root-Dateisystem ist schreibgeschützt, schreibbar sind nur das Home-Verzeichnis und `/tmp`.
+Weil die App `scope: user` hat, bekommt im Wizard jede Person ein eigenes Team; Gruppen mit gemeinsamer Umgebung gibt es nicht. Die VM-Version (`v1.x`) hatte eine VM je Team mit einem Zugang je Person.
+
+## Software im Terminal
+
+Ab `v2.2.0` ist wieder installiert, was die VM-Version hatte:
+
+| Werkzeug | Hinweis |
+|---|---|
+| `gcc`, `g++`, `make` | `build-essential` |
+| `python3`, `pip`, `python3 -m venv` | Debian 13 erlaubt kein `pip install` ins System-Python; pro Projekt `python3 -m venv .venv` benutzen. Ohne venv installiert `pip` nach `~/.local`. |
+| `node`, `npm` | `npm install -g` landet in `~/.npm-global` (im PATH) |
+| `git`, `curl`, `wget`, `unzip` | |
+
+Das Root-Dateisystem ist schreibgeschützt, schreibbar sind nur das Home-Verzeichnis und `/tmp`. `sudo` und `apt` gibt es nicht. Internetzugang ist erlaubt (Paketquellen wie PyPI und npm). Java ist **nicht** enthalten; dafür gibt es die Java-IDE.
 
 ## Konfigurierbare Variablen
 
 | Variable | Beschreibung | Pflicht |
 |---|---|---|
-| `assignments` | Aufgaben als ZIP-Datei (höchstens 1 MiB), eine Datei je Team | Nein |
+| `assignments` | Aufgaben als ZIP-Datei (höchstens 1 MiB), eine Datei je Team, also je Person | Nein |
 
-Das ZIP wird beim ersten Start des Arbeitsplatzes jeder Person im Team nach `~/Coding-Aufgabe` entpackt (`image/start.sh`). Ohne ZIP startet der Arbeitsplatz leer. Ein Beispiel liegt als `aufgaben.zip` im Repository (wird auch vom Smoke-Test verwendet). Die Variable gibt es ab `v2.1.0`; `v2.0.0` und `v2.0.1` kennen sie nicht.
+Das ZIP wird beim ersten Start des Arbeitsplatzes nach `~/Coding-Aufgabe` entpackt (`image/unpack-assignments.py`). Ohne ZIP startet der Arbeitsplatz leer. Ein Beispiel liegt als `aufgaben.zip` im Repository (wird auch vom Smoke-Test verwendet). Die Variable gibt es ab `v2.1.0`.
+
+### Wie das ZIP geprüft wird
+
+Das Backend prüft den Upload beim Anlegen des Deployments (Inhalt, Einträge, entpackte Größe, Pfade, Links); das Image prüft **noch einmal selbst**, bevor etwas auf die Platte kommt:
+
+- Das ganze Archiv wird vorab geprüft: höchstens 2000 Einträge, 32 MiB je Eintrag und 64 MiB insgesamt, gezählt an den Bytes, die wirklich aus dem Entpacker kommen (die Angaben im ZIP-Header werden nicht geglaubt). Jede Prüfsumme wird verifiziert.
+- **Ein einziger schlechter Eintrag verwirft das ganze Archiv:** absolute Pfade, `..`, `.` oder leere Pfadteile, Backslashes, Steuerzeichen, zu lange oder zu tief verschachtelte Pfade, doppelte Namen (auch nur durch Groß/Klein), symbolische Links und Gerätedateien, verschlüsselte Einträge, andere Kompression als Deflate, überlappende Einträge.
+- Es werden nur normale Dateien (Modus 0644) und Verzeichnisse angelegt, nichts wird ausführbar. macOS-Metadaten (`__MACOSX/`, `.DS_Store`, `._*`) werden weggelassen.
+- Es wird erst in ein Staging-Verzeichnis entpackt und nur ein vollständiges Ergebnis an den Zielort verschoben; bestehende Dateien werden nie überschrieben. Danach legt `.appstore-unpacked` fest, dass spätere Starts nichts mehr anfassen.
+- Wird das ZIP abgelehnt, steht der Grund im Container-Log (`online-ide: assignments rejected: …`), und die IDE startet mit leerem Arbeitsplatz.
+
+Getestet wird das bei jedem Build in `.github/test-unpack.py` mit gebauten Angriffsarchiven (Zip-Slip, Links, Bomben, überlappende Einträge, falsche Header, …).
 
 ## Image und CI
 
