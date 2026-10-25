@@ -44,6 +44,18 @@ grep -qx "/home/coder/.npm-global" <<<"$out"
 # The assignment unpacker against hostile archives (zip-slip, links, bombs, overlapping entries, ...), run as
 # the platform's unprivileged user in the platform's security context.
 docker exec -i ide python3 - < .github/test-unpack.py
+# Shared hostile-archive parity test (.github#13, item 3.3): the hostile ZIPs of appstore-upload-utils, which
+# the AppStore backend and Web-LaTeX reject as well, must be rejected by this image's unpacker. The generator is
+# fetched on the runner (not in the container) at a pinned commit and verified by sha256; to take over new
+# vectors bump both values together after reviewing the upstream change.
+UTILS_SHA=f0dc4e01846a34b578b2ea690ba1df484d305c74
+UTILS_SHA256=ed8d5e70399d905af7c55e7aa11d733a149e81404a3daaf8262090487060ecf5
+hostile="$(mktemp)"
+curl -fsSL --retry 3 -o "$hostile" \
+  "https://raw.githubusercontent.com/DHBW-AppStore-T3/appstore-upload-utils/${UTILS_SHA}/src/appstore_upload_utils/hostile_archives.py"
+echo "${UTILS_SHA256}  ${hostile}" | sha256sum -c -
+docker exec -i -e HOSTILE_ARCHIVES_SRC="$(cat "$hostile")" ide python3 - < .github/test-zip-parity.py
+rm -f "$hostile"
 docker rm -f ide >/dev/null
 
 # The team's assignment ZIP (appstore.yaml variable "assignments") is unpacked once into ~/Coding-Aufgabe.
