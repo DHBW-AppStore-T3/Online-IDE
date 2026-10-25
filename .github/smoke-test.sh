@@ -44,6 +44,9 @@ grep -qx "/home/coder/.npm-global" <<<"$out"
 # The assignment unpacker against hostile archives (zip-slip, links, bombs, overlapping entries, ...), run as
 # the platform's unprivileged user in the platform's security context.
 docker exec -i ide python3 - < .github/test-unpack.py
+# Shared hostile-archive parity test (.github#13, item 3.3): the same hostile ZIPs that the AppStore
+# backend and Web-LaTeX reject must also be rejected here.  The script is standalone (no pip needed).
+docker exec -i ide python3 - < .github/test-zip-parity.py
 docker rm -f ide >/dev/null
 
 # The team's assignment ZIP (appstore.yaml variable "assignments") is unpacked once into ~/Coding-Aufgabe.
