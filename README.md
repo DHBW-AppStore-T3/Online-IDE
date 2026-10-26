@@ -46,7 +46,7 @@ Getestet wird das bei jedem Build in `.github/test-unpack.py` mit gebauten Angri
 `image/Dockerfile` wird von `.github/workflows/ci.yml` gebaut (zentrale Pipeline aus `app-registry`: Vertrag, hadolint, Smoke-Test, Trivy) und mit dem Sicherheitskontext der Plattform getestet (UID 1000, Read-only-Root, keine Capabilities; `.github/smoke-test.sh`). Bekannte, noch nicht behebbare Befunde im Upstream-Image stehen mit Ablaufdatum in `.trivyignore`.
 
 - **Pull Request:** das Image wird gebaut und getestet, aber nicht veröffentlicht.
-- **Push auf `main` oder `dev`:** das Image wird zusätzlich nach GHCR gepusht. Den Digest zeigt die Zusammenfassung des Jobs.
+- **Push auf `main`:** das Image wird zusätzlich nach GHCR gepusht. Den Digest zeigt die Zusammenfassung des Jobs.
 - Nach einer Änderung den neuen Digest in `appstore.yaml` eintragen und eine neue Version taggen. Die Plattform deployt nur Images, die per Digest festgelegt sind.
 
 ## Ältere Versionen
