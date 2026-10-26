@@ -27,6 +27,13 @@ RUN rm -f /usr/local/bin/fixuid \
         unzip \
         wget \
     && rm -rf /var/lib/apt/lists/*
+# Security updates the base image does not have yet, at every CI build: app-ci.yml sets SECURITY_REFRESH to a new
+# value for each run, so the build cache cannot keep an older package state (app-registry README, "Sicherheitsupdates
+# im Image"). After the expensive steps, which stay cached; everything below is rebuilt in each run.
+ARG SECURITY_REFRESH
+RUN apt-get update \
+ && DEBIAN_FRONTEND=noninteractive apt-get upgrade -y --no-install-recommends \
+ && rm -rf /var/lib/apt/lists/*
 COPY --chmod=0755 start.sh /usr/local/bin/online-ide-start
 COPY --chmod=0755 unpack-assignments.py /usr/local/bin/online-ide-unpack
 USER 1000
