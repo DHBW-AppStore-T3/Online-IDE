@@ -19,6 +19,10 @@ repository), kept in step by hand:
   directories only, never following a link, mode 0644/0755, nothing is executed), and only a complete
   result is moved into place; existing files are never overwritten
 * macOS metadata (__MACOSX/, .DS_Store, ._*) is left out silently
+* editor and Git configuration is left out, with a note on stderr: a ".vscode", ".devcontainer" or ".git"
+  directory (at any depth) is not unpacked. Workspace tasks, settings and devcontainer files can run
+  commands as soon as a student opens the folder and clicks "trust", and ".git/config" or ".git/hooks" run
+  them on the first git command; an assignment ZIP is not a place for them
 
 Exit status: 0 unpacked, 3 rejected (the reason goes to stderr), 4 error while writing.
 """
@@ -41,6 +45,8 @@ MAX_COMPONENT_LENGTH = 255
 MAX_DEPTH = 32
 CHUNK = 64 * 1024
 MARKER = ".appstore-unpacked"
+# Directories whose content tells the editor or Git to run something (compared case-insensitively).
+CONFIG_DIRECTORIES = frozenset({".vscode", ".devcontainer", ".git"})
 
 
 class Rejected(Exception):
@@ -71,8 +77,15 @@ def is_mac_metadata(name: str) -> bool:
     return parts[0] == "__MACOSX" or parts[-1] == ".DS_Store" or parts[-1].startswith("._")
 
 
-def inspect(archive: zipfile.ZipFile, data_length: int) -> list[zipfile.ZipInfo]:
-    """Return the entries to unpack; raise Rejected."""
+def is_editor_config(name: str) -> bool:
+    return any(part.casefold() in CONFIG_DIRECTORIES for part in name.rstrip("/").split("/"))
+
+
+def inspect(archive: zipfile.ZipFile, data_length: int) -> tuple[list[zipfile.ZipInfo], int]:
+    """Return the entries to unpack and how many editor/Git configuration entries were left out; raise Rejected.
+
+    Every entry is checked, the ones that are left out as well: a hostile name rejects the archive
+    whether or not the entry would have been written."""
     infos = archive.infolist()
     if not infos:
         raise Rejected("the archive is empty")
@@ -100,7 +113,9 @@ def inspect(archive: zipfile.ZipFile, data_length: int) -> list[zipfile.ZipInfo]
         compressed += info.compress_size
     if compressed > data_length:
         raise Rejected("the archive's entries overlap")
-    return [i for i in infos if not is_mac_metadata(i.filename)]
+    wanted = [i for i in infos if not is_mac_metadata(i.filename)]
+    kept = [i for i in wanted if not is_editor_config(i.filename)]
+    return kept, len(wanted) - len(kept)
 
 
 def write_entries(archive: zipfile.ZipFile, entries: list[zipfile.ZipInfo], staging: str) -> None:
@@ -171,7 +186,13 @@ def main(argv: list[str]) -> int:
         except (zipfile.BadZipFile, OSError, ValueError):
             raise Rejected("not a readable ZIP archive") from None
         with archive:
-            entries = inspect(archive, len(data))
+            entries, left_out = inspect(archive, len(data))
+            if left_out:
+                print(
+                    f"online-ide: {left_out} entries of editor/Git configuration "
+                    f"({', '.join(sorted(CONFIG_DIRECTORIES))}) were not unpacked",
+                    file=sys.stderr,
+                )
             os.makedirs(staging, mode=0o700)
             try:
                 write_entries(archive, entries, staging)
