@@ -113,6 +113,30 @@ again = subprocess.run(["python3", UNPACK, zip_path, dest], capture_output=True,
 check(again.returncode == 0, "second start: status")
 check(open(f"{dest}/aufgaben/Aufgabe01.java").read() == "my own work\n", "second start: overwrote the student's file")
 
+# ---- editor and Git configuration is left out (it can make the editor or git run commands), the rest is unpacked
+status, dest, output, _ = run(
+    make_zip(
+        {
+            "proj/Main.java": b"class Main {}",
+            ".vscode/tasks.json": b'{"tasks":[{"runOptions":{"runOn":"folderOpen"}}]}',
+            "proj/.vscode/settings.json": b"{}",
+            ".devcontainer/devcontainer.json": b"{}",
+            ".git/config": b"[core]\n\tfsmonitor = id\n",
+            ".git/hooks/post-checkout": (b"#!/bin/sh\nid\n", 0o100755),
+            "proj/.GIT/HEAD": b"ref: refs/heads/x",
+            ".VSCode/launch.json": b"{}",
+            ".vscodeignore": b"keep me",
+        }
+    )
+)
+check(status == 0, f"editor config: status {status} ({output.strip()})")
+check(tree(dest) == [".appstore-unpacked", ".vscodeignore", "proj", "proj/Main.java"], f"editor config: unpacked {tree(dest)}")
+check("not unpacked" in output, f"editor config: no note about the left-out entries ({output.strip()})")
+status, dest, output, _ = run(make_zip({".vscode/tasks.json": b"{}"}))
+check(status == 0 and tree(dest) == [".appstore-unpacked"], f"only editor config: {status} {tree(dest) if os.path.exists(dest) else ''}")
+# a hostile name is rejected even inside a directory that would have been left out
+rejected("hostile name inside .vscode", make_zip({"ok.txt": b"fine", ".vscode/../../escape.txt": b"x"}))
+
 # ---- never overwrite what is already there (marker missing, e.g. after a failed first start)
 status, dest, output, _ = run(good, prefill={"aufgaben/Aufgabe01.java": b"already here\n"})
 check(status == 0, f"no-clobber: status {status}")
