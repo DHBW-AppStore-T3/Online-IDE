@@ -1,6 +1,6 @@
 # code-server for the pod runtime (appstore.yaml). One container per person; the
 # platform sets user, read-only root filesystem and the password (env PASSWORD).
-FROM docker.io/codercom/code-server:4.143.1
+FROM docker.io/codercom/code-server:4.144.0
 
 # fixuid (a Go binary in the upstream image) only serves upstream's own entrypoint, which the ENTRYPOINT below
 # replaces. The platform sets the UID itself, so it is dead weight, and its Go standard library accounted for 31 of
