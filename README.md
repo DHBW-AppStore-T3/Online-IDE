@@ -19,7 +19,7 @@ Ab `v2.2.0` ist wieder installiert, was die VM-Version hatte:
 | `node`, `npm` | `npm install -g` landet in `~/.npm-global` (im PATH) |
 | `git`, `curl`, `wget`, `unzip` | |
 
-Das Root-Dateisystem ist schreibgeschützt, schreibbar sind nur das Home-Verzeichnis und `/tmp`. `sudo` und `apt` gibt es nicht. Internetzugang ist erlaubt (Paketquellen wie PyPI und npm). Java ist **nicht** enthalten; dafür gibt es die Java-IDE.
+Das Root-Dateisystem ist schreibgeschützt, schreibbar sind nur das Home-Verzeichnis und `/tmp`. `sudo` und `apt` gibt es nicht. Internetzugang (nur TCP 80/443: Paketquellen wie PyPI und npm, Git über HTTPS) ist im Wizard eingeschaltet; die Lehrperson kann ihn abschalten. Java ist **nicht** enthalten; dafür gibt es die Java-IDE.
 
 ## Konfigurierbare Variablen
 
@@ -52,3 +52,14 @@ Getestet wird das bei jedem Build in `.github/test-unpack.py` mit gebauten Angri
 ## Ältere Versionen
 
 Die VM-Versionen (`v1.x`, cloud-init mit Terraform und Packer) wurden aus dem Repository entfernt. Sie bleiben über ihre Git-Tags (z. B. `v1.0.0`) abrufbar.
+
+## Netzwerk
+
+`network` in `appstore.yaml`:
+
+| Einstellung | Wahl im Wizard | Startet | Warum |
+|---|---|---|---|
+| `internet` | ja | an | pip, npm, git, curl und der Erweiterungs-Marktplatz brauchen es; für Prüfungen abschaltbar |
+| `podNetwork` | ja | aus | eigene TCP-/UDP-Server und -Clients zwischen den Arbeitsplätzen eines Deployments |
+
+Mit `podNetwork` erreicht jeder Arbeitsplatz die anderen **desselben Deployments** auf jedem TCP- und UDP-Port, unter seinem Namen (`<workload>`) und alle zusammen unter `peers` (DNS liefert die Adressen aller). Ein „Broadcast“ ist ein Senden an jede dieser Adressen; echtes `255.255.255.255` oder Multicast gibt es nicht (es würde die Pods aller Deployments erreichen).
