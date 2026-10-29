@@ -17,7 +17,12 @@ workload:
         - { name: PASSWORD, from: generated-password }
       writablePaths: [/tmp]
   storage: { size: 5Gi, mountPath: /home/coder }
-egress: internet
+# What the workspace may reach (the contract: app-registry README, "network"). pip, npm, git, curl and the code-server
+# extension marketplace need the internet, so it starts on; a teacher can switch it off (an exam). Students' own TCP/UDP
+# servers and clients between the workspaces of one deployment: a choice, off by default.
+network:
+  internet: { allowed: true, default: true }
+  podNetwork: { allowed: true, default: false }
 variables:
   # Optional assignments per team (a ZIP, e.g. aufgaben.zip in this repository): unpacked into ~/Coding-Aufgabe
   # of every member at the first start of their workspace (image/start.sh). Without it the workspace starts empty.
