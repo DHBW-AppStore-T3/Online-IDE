@@ -6,7 +6,7 @@ Eine eigene Entwicklungsumgebung (code-server, VS Code im Browser) für jede Per
 
 Jede Person erhält ihren eigenen Pod und ein von der Plattform erzeugtes Passwort. Der Login in code-server erfolgt mit diesem Passwort. Dateien liegen im persistenten Home-Verzeichnis (`/home/coder`) und überstehen Pause/Fortsetzen und Neustart.
 
-Weil die App `scope: user` hat, bekommt im Wizard jede Person ein eigenes Team; Gruppen mit gemeinsamer Umgebung gibt es nicht. Die VM-Version (`v1.x`) hatte eine VM je Team mit einem Zugang je Person.
+Standard ist ein Pod je Person (`scope: user`). Mit `scopeChoice: true` kann die Lehrperson im Wizard unter „Experteneinstellungen“ stattdessen einen Pod je Gruppe wählen; die Mitglieder einer Gruppe teilen sich dann Pod, Speicher und Passwort. Die VM-Version (`v1.x`) hatte eine VM je Team mit einem Zugang je Person.
 
 ## Software im Terminal
 
