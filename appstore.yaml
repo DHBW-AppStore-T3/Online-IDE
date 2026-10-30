@@ -4,6 +4,7 @@ apiVersion: appstore/v2
 name: online-ide
 runtime: kubernetes
 scope: user
+scopeChoice: true
 workload:
   containers:
     - name: ide
